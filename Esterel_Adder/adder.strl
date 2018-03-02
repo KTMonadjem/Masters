@@ -1,0 +1,112 @@
+module adder:
+
+% data handling declarations
+function add(integer, integer, integer): integer;
+procedure sendx()(integer);
+procedure sendy()(integer);
+function getx(): integer;
+function gety(): integer;
+procedure sendsum1()(integer);
+procedure sendsum2()(integer);
+function getsum1(): integer;
+function getsum2():integer;
+procedure compare(string)(integer, integer);
+
+% interface declarations
+input xin := 0: integer;
+input yin := 0: integer;
+input start_add;
+output sum1: integer;
+output sum2: integer;
+output comp: string;
+
+% local signals
+signal A, B, C in
+
+[
+% adder 1 thread
+var xvalue := 0: integer, yvalue := 0: integer in
+	loop
+		var data: integer in
+			present A then
+				xvalue := getx();
+			end present;
+			present B then
+				yvalue := gety();
+			end present;
+			present start_add then
+				data := add(xvalue, yvalue, 0);
+				call sendsum1()(data);
+				emit sum1(data);
+			end present;
+			pause;
+		end var
+	end loop
+end var
+]
+
+||
+
+[
+% adder 2 thread
+var xvalue: integer, yvalue: integer in
+	loop
+		var data: integer in
+			present A then
+				xvalue := getx();
+			end present;
+			present B then
+				yvalue := gety();
+			end present;
+			present start_add then
+				data := add(xvalue, yvalue, 1);
+				call sendsum2()(data);
+				emit sum2(data);
+				emit C;		
+			end present;
+			pause;
+		end var
+	end loop
+end var
+]
+
+||
+
+[
+% comparator thread
+var out1: integer, out2: integer, res: string in
+	loop
+		await C;
+		out1 := getsum1();
+		out2 := getsum2();
+		call compare(res)(out1, out2);
+		emit comp(res);
+	end loop
+end var
+]
+
+||
+
+[
+% x producer thread
+loop
+	await xin;
+	call sendx()(?xin);
+	emit A;
+end loop
+]
+
+||
+
+[
+% y producer thread
+loop
+	await yin;
+	call sendy()(?yin);
+	emit B;
+end loop
+]
+
+end signal
+
+end module

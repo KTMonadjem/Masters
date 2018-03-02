@@ -1,0 +1,26 @@
+module adder:
+
+% data handling declarations
+function add(integer, integer): integer;
+
+% interface declarations
+input xvalue := 0: integer;
+input yvalue := 0: integer;
+input start_add;
+output sum := integer;
+
+% local signals
+signal A, B in
+
+% adder thread
+loop
+	var data: integer in
+		present start_add then
+			emit sum(add(xvalue, yvalue));
+		end present
+	end var
+end loop
+
+end signal
+
+end module
