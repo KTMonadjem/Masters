@@ -9,26 +9,66 @@
 
 int main(int argc, char **argv)
 {
+	// Test example with bp
+//	int num_layers = 3;
+//	int layers[3] = {2, 3, 1};
+//	int max_weights = 6;
+//	float weights[2][6] = {{0.8, 0.2, 0.4, 0.9, 0.3, 0.5}, {0.3, 0.5, 0.9, 0, 0, 0}};
+//	int bias = 0;
+//	int activation = 0;
+//	struct ANN new_ann;
+//	struct ANN *my_ann = &new_ann;
+//	ann_init_custom(my_ann, num_layers, layers, max_weights, weights, bias, activation);
+//
+//	float inputs[2] = {1, 1};
+//	float outputs[1];
+//	ann_run(inputs, outputs, my_ann);
+//
+//	ann_print(my_ann, inputs, 0);
+//	//printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
+//
+//	ann_train(my_ann, "test.data", 100, 0.01);
+//
+//	ann_print(my_ann, inputs, 0);
+
 	int num_layers = 3;
-	int layers[3] = {2, 3, 1};
-	int max_weights = 6;
-	float weights[2][6] = {{0.8, 0.2, 0.4, 0.9, 0.3, 0.5}, {0.3, 0.5, 0.9, 0, 0, 0}};
+	int layers[3] = {2, 4, 1};
 	int bias = 0;
-	int activation = 0;
+	int activation = 1;
 	struct ANN new_ann;
 	struct ANN *my_ann = &new_ann;
-	ann_init_custom(my_ann, num_layers, layers, max_weights, weights, bias, activation);
+	ann_init(my_ann, num_layers, layers, bias, activation);
 
 	float inputs[2] = {1, 1};
 	float outputs[1];
-	ann_run(inputs, outputs, my_ann);
+	//ann_run(inputs, outputs, my_ann);
 
-	ann_print(my_ann, inputs, 0);
+	ann_print(my_ann, inputs, 1);
 	//printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
 
-	ann_train(my_ann, "test.data", 100, 0.01);
+	ann_train_batch(my_ann, "train.data", 1000, 0.0001);
 
-	ann_print(my_ann, inputs, 0);
+	//ann_print(my_ann, inputs, 1);
+
+	inputs[0] = 0.3;
+	inputs[1] = 0.4;
+	ann_run(inputs, outputs, my_ann);
+	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
+
+	inputs[0] = -0.5;
+	inputs[1] = 0.2;
+	ann_run(inputs, outputs, my_ann);
+	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
+
+	inputs[0] = -0.01;
+	inputs[1] = 0.02;
+	ann_run(inputs, outputs, my_ann);
+	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
+
+	inputs[0] = 0.5;
+	inputs[1] = -0.1;
+	ann_run(inputs, outputs, my_ann);
+	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
 
 	return 0;
 }
