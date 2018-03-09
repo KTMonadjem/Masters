@@ -24,7 +24,7 @@ void ann_init(struct ANN * ann, int num_layers, int layers[], int bias, int acti
 		{
 			int num_weights = layers[i - 1]*layers[i]; // number of weights = no. in previous layer * no. in current layer
 			if(bias)
-				num_weights++; // for bias (at last position)
+				num_weights += layers[i]; // add the number of weights as neurons in following layer for bias (at last positions)
 			for(j = 0; j < num_weights; j++)
 			{
 				float weight = (float)rand()/(float)(RAND_MAX); // random float between 0 and 1
@@ -58,7 +58,7 @@ void ann_init_custom(struct ANN * ann, int num_layers, int layers[], int max_wei
 		{
 			int num_weights = layers[i - 1]*layers[i]; // number of weights = no. in previous layer * no. in current layer
 			if(bias)
-				num_weights++; // for bias (at last position)
+				num_weights += layers[i]; // add the number of weights as neurons in following layer for bias (at last positions)
 			for(j = 0; j < num_weights; j++)
 			{
 				ann->weights[i - 1][j] = weights[i - 1][j];
@@ -120,8 +120,10 @@ void ann_run(float inputs[], float outputs[], struct ANN *ann)
 			}
 
 			if(ann->bias) // add bias if necessary (from last position in previous layer)
+			{
 				//printf("Bias present\n");
-				weighted_sum += ann->weights[i - 1][ann->layers[i - 1]];
+				weighted_sum += ann->weights[i - 1][ann->layers[i] * ann->layers[i - 1] + j]; // add bias weight for respective neuron in current layer
+			}
 
 			ann->sums[i][j] = weighted_sum; // add weighted sum to sum array for future use
 			//printf("Weighted sum is: %f\n", weighted_sum);
@@ -184,7 +186,7 @@ void ann_train_batch(struct ANN *ann, char * filename, int epochs, float error)
 	do
 	{
 		// adapt learning rate (step reduction)
-		if(num_epochs%10 == 0)
+		if(num_epochs%LR_EPOCHS == 0)
 		{
 			lr *= LR_STEP;
 		}
@@ -230,11 +232,15 @@ void ann_train_batch(struct ANN *ann, char * filename, int epochs, float error)
 			// add to bias neuron if necessary
 			if(ann->bias)
 			{
-
+				for(j = 0; j < ann->layers[i + 1]; j++) // run through each bias weight at end of the weights
+				{
+					// update bias' in the positions of the final weights
+					ann->weights[i][ann->layers[i] * ann->layers[i + 1] + j] = delta_accumulate[i][ann->layers[i] * ann->layers[i + 1] + j]/(float)size;
+				}
 			}
 		}
 
-		printf("EPOCH: %d		MSE: %f\n", num_epochs, mse);
+		printf("EPOCH: %d		MSE: %f		LEARNING RATE: %f\n", num_epochs, mse, lr);
 	}
 	while(epochs > num_epochs && mse > error);
 
@@ -310,14 +316,12 @@ void ann_get_deltas_batch(struct ANN *ann, float outputs[], float expected_outpu
 				delta_accumulate[layer - 1][i * ann->layers[layer - 1] + j] += weight_update;
 			}
 
-			// add bias weight to delta sum and update weight
+			// calculate bias delta weights
 			if(ann->bias)
 			{
-				// access last weight as the bias weight and add to summ
-				delta_sums[layer - 2][j] += ann->weights[layer - 1][ann->layers[layer] * ann->layers[layer - 1]];
-
-				// update bias weight and add to accumulate
-
+				// update bias weight and add to accumulate for bias connection to this neuron
+				float weight_update = learning_rate * delta_sums[layer - 1][i]; // no dy_i/d_sum since output is always 1
+				delta_accumulate[layer - 1][ann->layers[layer] * ann->layers[layer - 1] + i] += weight_update; // add to last position in the weights layer
 			}
 		}
 	}
@@ -377,6 +381,14 @@ void ann_print(struct ANN *ann, float inputs[], int weights_only)
 				printf("-> Connection to NEURON %d in LAYER %d has a WEIGHT of %f\n", k, (i + 1), ann->weights[i][k * ann->layers[i] + j]);
 			}
 		}
+		if(ann->bias)
+		{
+			printf("LAYER %d has a BIAS NEURON with %d connections\n", i, ann->layers[i + 1]);
+			for(j = 0; j < ann->layers[i + 1]; j++) // run through bias neurons at the end
+			{
+				printf("-> Connection to NEURON %d in LAYER %d has a WEIGHT of %f\n", j, (i + 1), ann->weights[i][ann->layers[i] * ann->layers[i + 1] + j]);
+			}
+		}
 	}
 	// display output layer
 	if(!weights_only) // only finds output layer if necessary
@@ -434,9 +446,15 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 	int num_weights = ann->num_layers - 1;
 	float delta_accumulate[num_weights][ann->max_weights]; // same size as number of layers of weights
 	float mse = 0; // error average of epoch
+	float lr = LEARNING_RATE;
 
 	do
 	{
+		// adapt learning rate (step reduction)
+		if(num_epochs%LR_EPOCHS == 0)
+		{
+			lr *= LR_STEP;
+		}
 		mse = 0; // zero mse for addition
 		for(i = 0; i < size; i++) // run through full set of data
 		{
@@ -449,7 +467,7 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 				mse += pow(output_error, 2); // add squared error to mse
 			}
 
-			ann_get_deltas_online(ann, result, data.outputs[i], ann->max_weights, delta_accumulate);
+			ann_get_deltas_online(ann, result, data.outputs[i], ann->max_weights, delta_accumulate, lr);
 
 			// update weights
 			// average weight deltas and correct weights
@@ -460,6 +478,15 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 				{
 					ann->weights[j][k] += delta_accumulate[j][k]; // update weight
 				}
+				// add to bias neuron if necessary
+				if(ann->bias)
+				{
+					for(k = 0; k < ann->layers[j + 1]; k++) // run through each bias weight at end of the weights
+					{
+						// update bias' in the positions of the final weights
+						ann->weights[j][ann->layers[j] * ann->layers[j + 1] + k] = delta_accumulate[j][ann->layers[j] * ann->layers[j + 1] + k]/(float)size;
+					}
+				}
 			}
 		}
 
@@ -467,7 +494,7 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 		mse /= (size * num_outputs); // divide error sum by total number of outputs
 		num_epochs++;
 
-		printf("EPOCH: %d		MSE: %f\n", num_epochs, mse);
+		printf("EPOCH: %d		MSE: %f		LEARNING RATE: %f\n", num_epochs, mse, lr);
 	}
 	while(epochs > num_epochs && mse > error);
 
@@ -478,13 +505,14 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 }
 
 // helper function to get the delta values of a single pass
-void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outputs[], int max_weights, float delta_accumulate[][max_weights])
+void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outputs[], int max_weights, float delta_accumulate[][max_weights], float lr)
 {
 	int i = 0;
 	int j = 0;
 	int num_weights = ann->num_layers - 1;
 	int layer = num_weights; // start at output layer
 	float delta_sums[num_weights][max_weights]; // delta_sums
+	float learning_rate = lr;
 
 	for(i = 0; i < ann->layers[num_weights]; i++) // transform output layer into initial delta_sum
 	{
@@ -536,11 +564,19 @@ void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outp
 				}
 
 				// calculate weight update
-				float weight_update = LEARNING_RATE * delta_sums[layer - 1][i] * error_gradient * ann->neurons[layer - 1][j];
+				float weight_update = learning_rate * delta_sums[layer - 1][i] * error_gradient * ann->neurons[layer - 1][j];
 				//printf("ANN -> Making accumulate delta weight %d by %f * %f * %f * %f = %f\n", (i * ann->layers[layer - 1] + j), LEARNING_RATE, delta_sums[layer - 1][i],
 				//		error_gradient, ann->neurons[layer - 1][j], weight_update);
 
 				delta_accumulate[layer - 1][i * ann->layers[layer - 1] + j] = weight_update;
+			}
+
+			// calculate bias delta weights
+			if(ann->bias)
+			{
+				// update bias weight and add to accumulate for bias connection to this neuron
+				float weight_update = learning_rate * delta_sums[layer - 1][i]; // no dy_i/d_sum since output is always 1
+				delta_accumulate[layer - 1][ann->layers[layer] * ann->layers[layer - 1] + i] += weight_update; // add to last position in the weights layer
 			}
 		}
 	}

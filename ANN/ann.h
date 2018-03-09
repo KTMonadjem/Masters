@@ -19,8 +19,9 @@
 #define MAX_LAYERS 10
 #define MAX_NEURONS 10
 #define MAX_DATA 1000
-#define LEARNING_RATE 0.7
-#define LR_STEP 0.8
+#define LEARNING_RATE 1
+#define LR_STEP 0.9
+#define LR_EPOCHS 100
 
 // sigmoid activation functions
 //#define tanh(sum) (2.0f/(1.0f + exp(-2.0f * sum)) - 1.0f) // [-1, 1] // math.h -> activation: tanh(double), derivative: pow(1/cosh(double), 2)
@@ -53,7 +54,7 @@ void ann_init_custom(struct ANN * ann, int num_layers, int layers[], int max_wei
 void ann_run(float inputs[], float outputs[], struct ANN *ann);
 float ann_activation(int activation, float sum);
 void ann_train_online(struct ANN *ann, char * filename, int epochs, float error);
-void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outputs[], int max_weights, float delta_accumulate[][max_weights]);
+void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outputs[], int max_weights, float delta_accumulate[][max_weights], float lr);
 void ann_train_batch(struct ANN *ann, char * filename, int epochs, float error);
 void ann_get_deltas_batch(struct ANN *ann, float outputs[], float expected_outputs[], int max_weights, float delta_accumulate[][max_weights], float lr);
 void ann_print(struct ANN *ann, float inputs[], int weights_only);

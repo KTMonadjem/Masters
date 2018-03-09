@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
 	int num_layers = 3;
 	int layers[3] = {2, 4, 1};
-	int bias = 0;
+	int bias = 1;
 	int activation = 1;
 	struct ANN new_ann;
 	struct ANN *my_ann = &new_ann;
@@ -50,25 +50,31 @@ int main(int argc, char **argv)
 
 	//ann_print(my_ann, inputs, 1);
 
-	inputs[0] = 0.3;
-	inputs[1] = 0.4;
-	ann_run(inputs, outputs, my_ann);
-	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
+	int i = 0;
+	int score = 0;
+	float err_av = 0;
+	for(; i < 100; i++)
+	{
+		inputs[0] = (float)rand()/(float)(RAND_MAX) - 0.5; // random float between -0.5 and 0.5;
+		inputs[0] *= 100;
+		inputs[0] = round(inputs[0]);
+		inputs[0] /= 100;
+		inputs[1] = (float)rand()/(float)(RAND_MAX) - 0.5; // random float between -0.5 and 0.5;
+		inputs[1] *= 100;
+		inputs[1] = round(inputs[1]);
+		inputs[1] /= 100;
+		float expected = inputs[0] + inputs[1];
 
-	inputs[0] = -0.5;
-	inputs[1] = 0.2;
-	ann_run(inputs, outputs, my_ann);
-	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
-
-	inputs[0] = -0.01;
-	inputs[1] = 0.02;
-	ann_run(inputs, outputs, my_ann);
-	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
-
-	inputs[0] = 0.5;
-	inputs[1] = -0.1;
-	ann_run(inputs, outputs, my_ann);
-	printf("The ANN took in %f and %f and returned %f.\n", inputs[0], inputs[1], outputs[0]);
+		ann_run(inputs, outputs, my_ann);
+		outputs[0] *= 100;
+		outputs[0] = round(outputs[0]);
+		outputs[0] /= 100;
+		printf("%f + %f = %f. Expected output is %f\n", inputs[0], inputs[1], outputs[0], expected);
+		if(outputs[0] == expected)
+			score++;
+		err_av += abs(expected - outputs[0]);
+	}
+	printf("ANN scored %d/%d, with an average error of %f\n", score, 100, err_av);
 
 	return 0;
 }
