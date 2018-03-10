@@ -19,9 +19,10 @@
 #define MAX_LAYERS 10
 #define MAX_NEURONS 10
 #define MAX_DATA 1000
-#define LEARNING_RATE 1
-#define LR_STEP 0.9
+#define LEARNING_RATE 0.7
+#define LR_STEP 1
 #define LR_EPOCHS 100
+#define MOMENTUM 0.5
 
 // sigmoid activation functions
 //#define tanh(sum) (2.0f/(1.0f + exp(-2.0f * sum)) - 1.0f) // [-1, 1] // math.h -> activation: tanh(double), derivative: pow(1/cosh(double), 2)
@@ -32,6 +33,7 @@ struct ANN{
 	int num_layers; // stores number of layers (I + H + ... + O)
 	int layers[MAX_LAYERS]; // stores number of neurons per layer (I, H, ..., O)
 	float weights[MAX_LAYERS][(int)pow(MAX_NEURONS, 2)]; // stores weight values
+	float delta_weights[MAX_LAYERS][(int)pow(MAX_NEURONS, 2)]; // stores previous weight update values for use in momentum calculations
 	int max_weights;
 	// weights are assigned by future neuron, i.e. the first x weights belong to future neuron 1, the next x to future neuron 2, etc...
 	// weights per layer = (neurons in previous layer + 1) * neurons in next layer

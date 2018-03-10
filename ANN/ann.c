@@ -27,7 +27,10 @@ void ann_init(struct ANN * ann, int num_layers, int layers[], int bias, int acti
 				num_weights += layers[i]; // add the number of weights as neurons in following layer for bias (at last positions)
 			for(j = 0; j < num_weights; j++)
 			{
-				float weight = (float)rand()/(float)(RAND_MAX); // random float between 0 and 1
+				float weight = (float)rand()/(float)(RAND_MAX) - 0.5; // random float between -0.5 and 0.5
+				weight *= 100;
+				weight = round(weight);
+				weight /= 100;
 				ann->weights[i - 1][j] = weight;
 			}
 
@@ -227,6 +230,7 @@ void ann_train_batch(struct ANN *ann, char * filename, int epochs, float error)
 				//float delta_weight = delta_accumulate[i][j]; // DO NOT AVERAGE THE WEIGHTS
 				//printf("ANN -> delta_weight is: %f/%f = %f\n", delta_accumulate[i][j], (float)size, delta_weight);
 				ann->weights[i][j] += delta_weight; // add to the corresponding weight
+				ann->delta_weights[i][j] = delta_weight;
 			}
 
 			// add to bias neuron if necessary
@@ -235,7 +239,10 @@ void ann_train_batch(struct ANN *ann, char * filename, int epochs, float error)
 				for(j = 0; j < ann->layers[i + 1]; j++) // run through each bias weight at end of the weights
 				{
 					// update bias' in the positions of the final weights
-					ann->weights[i][ann->layers[i] * ann->layers[i + 1] + j] = delta_accumulate[i][ann->layers[i] * ann->layers[i + 1] + j]/(float)size;
+					float delta_weight = delta_accumulate[i][ann->layers[i] * ann->layers[i + 1] + j]/(float)size;
+					//printf("Updating bias delta by %f\n", delta_weight);
+					ann->weights[i][ann->layers[i] * ann->layers[i + 1] + j] += delta_weight;
+					ann->delta_weights[i][ann->layers[i] * ann->layers[i + 1] + j] = delta_weight;
 				}
 			}
 		}
@@ -289,7 +296,7 @@ void ann_get_deltas_batch(struct ANN *ann, float outputs[], float expected_outpu
 				}
 
 				// at the same time, calculate weight updates for this current layer using the previous layer's delta values
-				// weight update w'ij = learning_rate * delta_j * dy_i/d_sum * y_i
+				// weight update w'ij = learning_rate * delta_j * dy_j/d_sum * y_i
 				// for now, default learning rate is 0.7
 
 				// calculate gradient of error
@@ -309,7 +316,8 @@ void ann_get_deltas_batch(struct ANN *ann, float outputs[], float expected_outpu
 				}
 
 				// calculate weight update
-				float weight_update = learning_rate * delta_sums[layer - 1][i] * error_gradient * ann->neurons[layer - 1][j];
+				float weight_update = learning_rate * delta_sums[layer - 1][i] * error_gradient * ann->neurons[layer - 1][j] +
+									MOMENTUM * ann->delta_weights[layer - 1][i * ann->layers[layer - 1] + j]; // add momentum
 				//printf("ANN -> Adding to accumulate delta weight %d by %f * %f * %f * %f = %f\n", (i * ann->layers[layer - 1] + j), LEARNING_RATE, delta_sums[layer - 1][i],
 				//		error_gradient, ann->neurons[layer - 1][j], weight_update);
 
@@ -319,8 +327,24 @@ void ann_get_deltas_batch(struct ANN *ann, float outputs[], float expected_outpu
 			// calculate bias delta weights
 			if(ann->bias)
 			{
+				// calculate gradient of error
+				float error_gradient;
+				switch(ann->activation){
+				case 0: // differentiate sigmoid(x) = f(x): f'(x) = f(x)[1 - f(x)]
+					error_gradient = ann->neurons[layer][i] * (1 - ann->neurons[layer][i]); // delta_sum = sigmoid(sum)(1 - sigmoid(sum))*output_error
+					//rintf("ANN -> Error gradient of current neuron is %f * (1 - %f) = %f\n", ann->neurons[layer][i], ann->neurons[layer][i], error_gradient);
+					break;
+				case 1: // differentiate tanh(x) = f(x): f'(x) = sech(x)^2 = 1/cosh(x)^2
+					error_gradient = pow(1.0/cosh(ann->sums[layer][i]), 2); // delta_sum = (1/cosh(sum))^2 * output_error (ann->sums starts at 1, not 0)
+					//printf("ANN -> Error gradient of current neuron is (1/cosh(%f))^2 = (1/%f)^2 = %f\n", ann->sums[layer][i], cosh(ann->sums[layer][i]), error_gradient);
+					break;
+				default: // differentiate sigmoid(x) = f(x): f'(x) = f(x)[1 - f(x)]
+					error_gradient = ann->neurons[layer][i] * (1 - ann->neurons[layer][i]); // delta_sum = sigmoid(sum)(1 - sigmoid(sum))*output_error
+					break;
+				}
 				// update bias weight and add to accumulate for bias connection to this neuron
-				float weight_update = learning_rate * delta_sums[layer - 1][i]; // no dy_i/d_sum since output is always 1
+				float weight_update = learning_rate * error_gradient * delta_sums[layer - 1][i] +
+						MOMENTUM * ann->delta_weights[layer - 1][ann->layers[layer] * ann->layers[layer - 1] + i]; // add momentum; // no dy_j/d_sum since output is always 1
 				delta_accumulate[layer - 1][ann->layers[layer] * ann->layers[layer - 1] + i] += weight_update; // add to last position in the weights layer
 			}
 		}
@@ -401,6 +425,8 @@ void ann_print(struct ANN *ann, float inputs[], int weights_only)
 					output_layer, i, ann->sums[output_layer][i], ann->neurons[output_layer][i]);
 		}
 	}
+
+	printf("\n+++++++++++++++ FINISHED PRINTING NEURAL NETWORK STRUCTURE +++++++++++++++\n\n");
 }
 
 
@@ -477,6 +503,7 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 				for(k = 0; k < ann->layers[j] * ann->layers[j + 1]; k++) // run through each delta weight
 				{
 					ann->weights[j][k] += delta_accumulate[j][k]; // update weight
+					ann->delta_weights[j][k] = delta_accumulate[j][k];
 				}
 				// add to bias neuron if necessary
 				if(ann->bias)
@@ -484,7 +511,9 @@ void ann_train_online(struct ANN *ann, char * filename, int epochs, float error)
 					for(k = 0; k < ann->layers[j + 1]; k++) // run through each bias weight at end of the weights
 					{
 						// update bias' in the positions of the final weights
-						ann->weights[j][ann->layers[j] * ann->layers[j + 1] + k] = delta_accumulate[j][ann->layers[j] * ann->layers[j + 1] + k]/(float)size;
+						float delta_weight = delta_accumulate[j][ann->layers[j] * ann->layers[j + 1] + k]/(float)size;
+						ann->weights[j][ann->layers[j] * ann->layers[j + 1] + k] += delta_weight;
+						ann->delta_weights[j][ann->layers[j] * ann->layers[j + 1] + k] = delta_weight;
 					}
 				}
 			}
@@ -564,7 +593,8 @@ void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outp
 				}
 
 				// calculate weight update
-				float weight_update = learning_rate * delta_sums[layer - 1][i] * error_gradient * ann->neurons[layer - 1][j];
+				float weight_update = learning_rate * delta_sums[layer - 1][i] * error_gradient * ann->neurons[layer - 1][j] +
+						MOMENTUM * ann->delta_weights[layer - 1][i * ann->layers[layer - 1] + j]; // add momentum
 				//printf("ANN -> Making accumulate delta weight %d by %f * %f * %f * %f = %f\n", (i * ann->layers[layer - 1] + j), LEARNING_RATE, delta_sums[layer - 1][i],
 				//		error_gradient, ann->neurons[layer - 1][j], weight_update);
 
@@ -574,8 +604,24 @@ void ann_get_deltas_online(struct ANN *ann, float outputs[], float expected_outp
 			// calculate bias delta weights
 			if(ann->bias)
 			{
+				// calculate gradient of error
+				float error_gradient;
+				switch(ann->activation){
+				case 0: // differentiate sigmoid(x) = f(x): f'(x) = f(x)[1 - f(x)]
+					error_gradient = ann->neurons[layer][i] * (1 - ann->neurons[layer][i]); // delta_sum = sigmoid(sum)(1 - sigmoid(sum))*output_error
+					//rintf("ANN -> Error gradient of current neuron is %f * (1 - %f) = %f\n", ann->neurons[layer][i], ann->neurons[layer][i], error_gradient);
+					break;
+				case 1: // differentiate tanh(x) = f(x): f'(x) = sech(x)^2 = 1/cosh(x)^2
+					error_gradient = pow(1.0/cosh(ann->sums[layer][i]), 2); // delta_sum = (1/cosh(sum))^2 * output_error (ann->sums starts at 1, not 0)
+					//printf("ANN -> Error gradient of current neuron is (1/cosh(%f))^2 = (1/%f)^2 = %f\n", ann->sums[layer][i], cosh(ann->sums[layer][i]), error_gradient);
+					break;
+				default: // differentiate sigmoid(x) = f(x): f'(x) = f(x)[1 - f(x)]
+					error_gradient = ann->neurons[layer][i] * (1 - ann->neurons[layer][i]); // delta_sum = sigmoid(sum)(1 - sigmoid(sum))*output_error
+					break;
+				}
 				// update bias weight and add to accumulate for bias connection to this neuron
-				float weight_update = learning_rate * delta_sums[layer - 1][i]; // no dy_i/d_sum since output is always 1
+				float weight_update = learning_rate * error_gradient * delta_sums[layer - 1][i] +
+						MOMENTUM * ann->delta_weights[layer - 1][ann->layers[layer] * ann->layers[layer - 1] + i]; // add momentum; // no dy_i/d_sum since output is always 1
 				delta_accumulate[layer - 1][ann->layers[layer] * ann->layers[layer - 1] + i] += weight_update; // add to last position in the weights layer
 			}
 		}
