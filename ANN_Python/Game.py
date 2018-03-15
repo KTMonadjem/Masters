@@ -305,13 +305,13 @@ class Game:
                 self.rabbit.pos = new_pos
                 self.update()
 
-                # if adjacent is hole, add to rabbit score, unless rabbit has already scored this way
-                if (self.check_pos([new_pos[0] + 1, new_pos[1]], 2)
-                        or self.check_pos([new_pos[0] - 1, new_pos[1]], 2)
-                        or self.check_pos([new_pos[0], new_pos[1] + 1], 2)
-                        or self.check_pos([new_pos[0], new_pos[1] - 1], 2)) and not self.rabbit.scored:
-                    self.rabbit.score = self.rabbit.score + 1
-                    self.rabbit.scored = True
+                # # if adjacent is hole, add to rabbit score, unless rabbit has already scored this way
+                # if (self.check_pos([new_pos[0] + 1, new_pos[1]], 2)
+                #         or self.check_pos([new_pos[0] - 1, new_pos[1]], 2)
+                #         or self.check_pos([new_pos[0], new_pos[1] + 1], 2)
+                #         or self.check_pos([new_pos[0], new_pos[1] - 1], 2)) and not self.rabbit.scored:
+                #     self.rabbit.score = self.rabbit.score + 1
+                #     self.rabbit.scored = True
 
         if pause:
             self.print_console()
@@ -388,48 +388,56 @@ class Game:
                     self.state[x][y] = 0
 
     def reset(self):
+        # create x exits
+        corners = [[0, 0], [0, self.size - 1], [self.size - 1, 0], [self.size - 1, self.size - 1]]
+        for i in range(self.num_exits):
+            # num = rand.randint(0, 3)
+            # hole = rand.randint(1, (self.size - 2))
+            # if num == 0:
+            #     hole = [hole, 0]
+            # elif num == 1:
+            #     hole = [hole, (self.size - 1)]
+            # elif num == 2:
+            #     hole = [0, hole]
+            # elif num == 3:
+            #     hole = [(self.size - 1), hole]
+
+            hole = [rand.randint(0, self.size - 1), rand.randint(0, self.size - 1)]
+            # prevent duplicate exits
+            while hole in self.exits or hole in corners:
+                # hole = rand.randint(1, (self.size - 2))
+                # if num == 0:
+                #     hole = [hole, 0]
+                # elif num == 1:
+                #     hole = [hole, (self.size - 1)]
+                # elif num == 2:
+                #     hole = [0, hole]
+                # elif num == 3:
+                #     hole = [(self.size - 1), hole]
+
+                hole = [rand.randint(0, self.size - 1), rand.randint(0, self.size - 1)]
+
+            self.exits[i] = hole
+
         # determine random positions for all animals
         x = rand.randint(1, self.size - 2)
         y = rand.randint(1, self.size - 2)
+        while [x, y] in self.exits:
+            x = rand.randint(1, self.size - 2)
         self.wolf1.pos = [x, y]  # ANN initialised in animal __init__
 
         x = rand.randint(1, self.size - 2)
         y = rand.randint(1, self.size - 2)
-        while [x, y] == self.wolf1.pos:
+        while [x, y] == self.wolf1.pos or [x, y] in self.exits:
             x = rand.randint(1, self.size - 2)
         self.wolf2.pos = [x, y]
 
         x = rand.randint(1, self.size - 2)
         y = rand.randint(1, self.size - 2)
-        while [x, y] == self.wolf1.pos or [x, y] == self.wolf2.pos:
+        while [x, y] == self.wolf1.pos or [x, y] == self.wolf2.pos or [x, y] in self.exits:
             y = rand.randint(1, self.size - 2)
         self.rabbit.pos = [x, y]
         self.rabbit.scored = False
-
-        # create x exits
-        for i in range(self.num_exits):
-            num = rand.randint(0, 3)
-            hole = rand.randint(1, (self.size - 2))
-            if num == 0:
-                hole = [hole, 0]
-            elif num == 1:
-                hole = [hole, (self.size - 1)]
-            elif num == 2:
-                hole = [0, hole]
-            elif num == 3:
-                hole = [(self.size - 1), hole]
-            # prevent duplicate exits
-            while hole in self.exits:
-                hole = rand.randint(1, (self.size - 2))
-                if num == 0:
-                    hole = [hole, 0]
-                elif num == 1:
-                    hole = [hole, (self.size - 1)]
-                elif num == 2:
-                    hole = [0, hole]
-                elif num == 3:
-                    hole = [(self.size - 1), hole]
-            self.exits[i] = hole
 
         # zero the game board and add walls and exits
         self.state = []
@@ -449,14 +457,52 @@ class Game:
                 if [x, y] == self.rabbit.pos:
                     self.state[x][y] = 5
 
+    def evaluate_file(self, generations, filename="attempt.txt", top_gens=10):
+        wolves = []
+        wolf = []
+        wolves_high = -1
+        rabbits = []
+        rabbit = []
+        rabbits_high = -1
+        print "Evaluating file", filename
+        for i in range(generations):
+            print "-> In generation:", i
+            self.import_from_file(filename, i)
+            self.start()
+
+            if wolves_high == -1:
+                wolves_high = 0
+            elif self.score[0] > wolves[wolves_high][0]:
+                wolves_high = i
+            wolves.append([self.score[0], i])
+            if rabbits_high == -1:
+                rabbits_high = 0
+            elif self.score[1] > rabbits[rabbits_high][0]:
+                rabbits_high = i
+            rabbits.append([self.score[1], i])
+        sorted_wolves = sorted(wolves, key=lambda w: w[0], reverse=True)
+        sorted_rabbits = sorted(rabbits, key=lambda r: r[0], reverse=True)
+
+        print "Top", top_gens,"wolf generations:", sorted_wolves[0:top_gens]
+        print "Top", top_gens, "rabbit generations:", sorted_rabbits[0:top_gens]
+
+        x = np.arange(0, generations)
+        line1, = plt.plot(x, [wolf[0] for wolf in wolves], label="Wolves")
+        line2, = plt.plot(x, [rabbit[0] for rabbit in rabbits], label="Rabbit")
+        plt.xlabel("Generation")
+        plt.ylabel("Score")
+        plt.legend(handles=[line1, line2])
+        name = filename[0: len(filename) - 4]
+        name = name + '_scoring.png'
+        plt.savefig(name)
+        plt.show()
+
     def start(self, pause=False):
         self.score = [0, 0]
-        self.rabbit.score = 0
         self.round = 0
         self.reset()
         if pause:
             game.print_console()
-        rounds_score = [0, 0]
         while self.round < self.max_rounds and self.max_score not in self.score:
             self.round = self.round + 1
             self.turns = 0  # whole set of animal turns
@@ -474,10 +520,8 @@ class Game:
                 print "\n<=============== Round over =================>"
                 if score == [1, 0]:
                     print "Wolves scored!"
-                    rounds_score[0] = rounds_score[0] + 1
                 if score == [0, 1]:
                     print "Rabbit scored!"
-                    rounds_score[1] = rounds_score[1] + 1
                 if score == [0, 0]:
                     print "Nobody scored..."
                 print "Round number:", self.round
@@ -486,11 +530,12 @@ class Game:
                 print "Total score:", self.score
                 time.sleep(2)
         if pause:
-            print "Wolves won", rounds_score[0], "rounds!"
-            print "Rabbits won", rounds_score[1], "rounds!"
+            print "Wolves won", self.score[0], "rounds!"
+            print "Rabbits won", self.score[1], "rounds!"
 
 
-# game = Game(size=10, rounds=1, turns=10, num_exits=5)
-# game.import_from_file("attempt.txt", 43)
+game = Game(size=10, rounds=20, turns=20, num_exits=3)
+game.evaluate_file(100, "attempt_1000.txt", 100)
+# game.import_from_file("attempt_1000.txt", 80)
 # game.start(pause=True)
 
