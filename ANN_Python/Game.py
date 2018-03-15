@@ -26,7 +26,8 @@ class Animal:
     def move(self, inputs=[]):
         if self.status == 1:
             self.status = 0
-            return [0 for _ in range(self.ann.layers[self.ann.num_layers - 1])]
+            return self.ann.run(inputs)  # stunning disabled
+            # return [0 for _ in range(self.ann.layers[self.ann.num_layers - 1])]  # stunning enabled
         return self.ann.run(inputs)
 
 
@@ -102,12 +103,14 @@ class Game:
         else:
             m = float(pos1[1] - pos2[1])/float(pos1[0] - pos2[0])
             angle = np.arctan(m)*180/np.pi
+            if pos1[0] > pos2[0]:
+                angle = angle + 180
+            if -90 < angle < 0:
+                angle = angle + 360
 
-        if pos1[0] > pos2[0]:
-            angle = angle + 180
-        if -90 < angle < 0:
-            angle = angle + 360
-        return angle  # *np.pi/180.0  # return in radians
+        # print "Angle from", pos1, "to", pos2, "is", angle
+
+        return angle/360  # return angle as percentage of 360 (scaled between 1 and 0)
 
     def get_inputs(self, pos):
         inputs = [0 for _ in range(8*2 + 4)]
@@ -176,11 +179,11 @@ class Game:
                     inputs[4 + angle * 2 + 1] = 1.0 / length
                     if x == 0 or y == 0 or x == self.size - 1 or y == self.size - 1:  # found game boundary
                         end = True
-
             if not found_obs:
                 inputs[4 + angle * 2] = 0
             if not found_exit:
                 inputs[4 + angle * 2 + 1] = 0
+
         return inputs
 
     def take_turn(self):
@@ -286,8 +289,8 @@ class Game:
         # test win conditions
         if not (new_pos == self.rabbit.pos):
             if self.check_pos(new_pos, 2):  # check for rabbit on exit
-                self.rabbit.score = self.rabbit.score + 2
-                return [0, 2]  # return +2 score for rabbit and +0 for wolves
+                self.rabbit.score = self.rabbit.score + 1
+                return [0, 1]  # return +2 score for rabbit and +0 for wolves
             elif self.check_pos(new_pos, 3):  # check if rabbit on wolf1
                 self.wolf1.score = self.wolf1.score + 1
                 return [1, 0]
@@ -389,14 +392,12 @@ class Game:
         x = rand.randint(1, self.size - 2)
         y = rand.randint(1, self.size - 2)
         self.wolf1.pos = [x, y]  # ANN initialised in animal __init__
-        self.wolf1.score = 0
 
         x = rand.randint(1, self.size - 2)
         y = rand.randint(1, self.size - 2)
         while [x, y] == self.wolf1.pos:
             x = rand.randint(1, self.size - 2)
         self.wolf2.pos = [x, y]
-        self.wolf2.score = 0
 
         x = rand.randint(1, self.size - 2)
         y = rand.randint(1, self.size - 2)
@@ -404,7 +405,6 @@ class Game:
             y = rand.randint(1, self.size - 2)
         self.rabbit.pos = [x, y]
         self.rabbit.scored = False
-        self.rabbit.score = 0
 
         # create x exits
         for i in range(self.num_exits):
@@ -432,6 +432,7 @@ class Game:
             self.exits[i] = hole
 
         # zero the game board and add walls and exits
+        self.state = []
         for x in range(self.size):
             self.state.append([])
             for y in range(self.size):
@@ -450,8 +451,11 @@ class Game:
 
     def start(self, pause=False):
         self.score = [0, 0]
+        self.rabbit.score = 0
         self.round = 0
         self.reset()
+        if pause:
+            game.print_console()
         rounds_score = [0, 0]
         while self.round < self.max_rounds and self.max_score not in self.score:
             self.round = self.round + 1
@@ -481,11 +485,12 @@ class Game:
                 print "Turns taken:", self.turns
                 print "Total score:", self.score
                 time.sleep(2)
-        print "Wolves won", rounds_score[0], "rounds!"
-        print "Rabbits won", rounds_score[1], "rounds!"
+        if pause:
+            print "Wolves won", rounds_score[0], "rounds!"
+            print "Rabbits won", rounds_score[1], "rounds!"
 
 
-game = Game(size=10, rounds=1, turns=10, num_exits=5)
-game.import_from_file("attempt_good.txt", 99)
-game.start(pause=True)
+# game = Game(size=10, rounds=1, turns=10, num_exits=5)
+# game.import_from_file("attempt.txt", 43)
+# game.start(pause=True)
 

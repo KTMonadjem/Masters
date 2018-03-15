@@ -2,6 +2,8 @@ from Game import *
 from ANN import *
 import random as rand
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
+import Image
 
 
 class Parent:
@@ -15,12 +17,12 @@ class Parent:
 
 
 class GA:
-    def __init__(self, epochs=100, size=100, mutate=0.2, retain=0.1, game_size=10, game_rounds=10, game_turns=10, game_exits=5):
+    def __init__(self, generations=100, size=100, mutate=0.2, retain=0.1, game_size=10, game_rounds=10, game_turns=10, game_exits=5):
         self.game_size = game_size
         self.game_rounds = game_rounds
         self.game_turns = game_turns
         self.game_exits = game_exits
-        self.epochs = epochs
+        self.generations = generations
         self.size = size
         self.fit = 0.4 - retain
         while not(self.size % 10 == 0):  # ensure that the population sizes fits with the parent pool
@@ -75,7 +77,7 @@ class GA:
                     self.rabbits[j].score = self.population[i].rabbit.score  # add rabbit score to parent
                     self.rabbits[j].rabbit = self.population[i].rabbit  # add rabbit
                     add_rabbit = True
-                elif self.rabbits[j].score < self.population[i].score[1] and not add_rabbit:  # if individual has higher score, squeeze him instead
+                elif self.rabbits[j].score < self.population[i].rabbit.score and not add_rabbit:  # if individual has higher score, squeeze him instead
                     self.rabbits[j:j] = [Parent()]
                     self.rabbits[j].index = i  # add parent location in original population
                     self.rabbits[j].score = self.population[i].rabbit.score  # add rabbit score to parent
@@ -118,7 +120,7 @@ class GA:
         rand_mutate = rand.uniform(0, 1)
         if rand_mutate < self.mutate:
             mutate_child = rand.randint(0, 2)
-            mutate_val = rand.uniform(-1, 1)  # mutate random number between -1 and 1
+            mutate_val = rand.gauss(0, 5)  # mutate random number in gaussian distribution
             total_weights = -1
             for i in range(P1.num_layers - 1):  # run through all layers of weights
                 total_weights = total_weights + len(P1.weights[i])
@@ -150,8 +152,10 @@ class GA:
         best_wolf_pop = 0
         best_rabbit_score = 0
         best_rabbit_pop = 0
-        for i in range(self.epochs):
-            print "-> Epoch:", i
+        time_taken = 0
+        for i in range(self.generations):
+            print "-> Generation:", i
+            sstart = timer()
             self.fitness()  # run the game for each individual and the calculate the parent population
 
             self.file = open('attempt.txt', 'a')
@@ -184,7 +188,7 @@ class GA:
                 rabbit_parents.append(rand_rabbit)
                 new_rabbit = Parent()
                 new_rabbit.index = rand_rabbit
-                new_rabbit.score = self.population[rand_rabbit].score[1]
+                new_rabbit.score = self.population[rand_rabbit].rabbit.score
                 new_rabbit.rabbit = self.population[rand_rabbit].rabbit
                 self.rabbits.append(new_rabbit)
 
@@ -217,14 +221,19 @@ class GA:
                     self.population[len(self.rabbits) + j * 3 + k].wolf2 = children3[k]
 
             wolf_score.append(np.sum([self.population[j].score[0] for j in range(self.size)]))
-            rabbit_score.append(np.sum([self.population[j].score[1] for j in range(self.size)]))
+            rabbit_score.append(np.sum([self.population[j].rabbit.score for j in range(self.size)]))
             if best_wolf_score < wolf_score[i]:
                 best_wolf_score = wolf_score[i]
                 best_wolf_pop = i
             if best_rabbit_score < rabbit_score[i]:
                 best_rabbit_score = rabbit_score[i]
                 best_rabbit_pop = i
-            print "Wolf score after run:", wolf_score[i], "    ;    Rabbit score after run:", rabbit_score[i]
+
+            eend = timer()
+            print "Time taken for generation:", (eend - sstart), "s"
+            time_taken = time_taken + (eend - sstart)
+            print "Total time taken:", time_taken, "s\n"
+            # print "Wolf score after run:", wolf_score[i], "    ;    Rabbit score after run:", rabbit_score[i]
             # print "Population after run"
             # for j in range(self.size):
             #     print self.population[j].score
@@ -234,17 +243,28 @@ class GA:
             # print "Parent rabbit population after run"
             # for j in range(len(self.rabbits)):
             #     print "Score:", self.rabbits[j].score, "; Index:", self.rabbits[j].index
-        print "Best wolf score was:", best_wolf_score, "in epoch", best_wolf_pop
-        print "Best rabbit score was:", best_rabbit_score, "in epoch", best_rabbit_pop
+        print "\nBest wolf score was:", best_wolf_score, "in generation", best_wolf_pop
+        print "Best rabbit score was:", best_rabbit_score, "in generation", best_rabbit_pop
+        print "Average time taken per generation was:", time_taken/self.generations, "s"
 
-        x = np.arange(0, self.epochs)
-        plt.plot(x, wolf_score)
-        plt.plot(x, rabbit_score)
+        x = np.arange(0, self.generations)
+        line1, = plt.plot(x, wolf_score, label="Wolves")
+        line2, = plt.plot(x, rabbit_score, label="Rabbit")
+        plt.xlabel("Generation")
+        plt.ylabel("Score")
+        plt.legend(handles=[line1, line2])
+        plt.savefig('attempt.png')
         plt.show()
 
 
-ga = GA(epochs=100, size=100, game_rounds=20)
+ga = GA(generations=100, size=200, game_rounds=50, game_exits=5)
+start = timer()
+
 ga.optimize()
+
+end = timer()
+
+print "Total time taken:", (end - start), "s"
 
 
 
