@@ -291,15 +291,16 @@ class Game:
             if self.check_pos(new_pos, 2):  # check for rabbit on exit
                 self.rabbit.score = self.rabbit.score + 1
                 return [0, 1]  # return +2 score for rabbit and +0 for wolves
-            elif self.check_pos(new_pos, 3):  # check if rabbit on wolf1
-                self.wolf1.score = self.wolf1.score + 1
-                return [1, 0]
+            elif self.check_pos(new_pos, 3):  # check if rabbit on wolf1 -> rabbit loses score
+                self.rabbit.score = self.rabbit.score - 1
+                return [0, -1]
             elif self.check_pos(new_pos, 4):  # check if rabbit on wolf2
-                self.wolf2.score = self.wolf2.score + 1
-                return [1, 0]
+                self.rabbit.score = self.rabbit.score - 1
+                return [0, -1]
             elif self.check_pos(new_pos, 1):  # check if rabbit hit obstacle
                 self.rabbit.status = 1  # stun rabbit
                 self.rabbit.old_pos = self.rabbit.pos
+                self.update()
             else:  # otherwise move to empty space
                 self.rabbit.old_pos = self.rabbit.pos
                 self.rabbit.pos = new_pos
@@ -329,10 +330,12 @@ class Game:
             elif self.check_pos(new_pos, 1) or self.check_pos(new_pos, 4):  # check if wolf1 hit obstacle or other wolf
                 self.wolf1.status = 1  # stun wolf
                 self.wolf1.old_pos = self.wolf1.pos
+                self.update()
             elif self.check_pos(new_pos, 2):  # check if wolf1 hit rabbit hole
                 self.wolf1.status = 1  # stun wolf and remove score
                 self.wolf1.score = self.wolf1.score - 1
                 self.wolf1.old_pos = self.wolf1.pos
+                self.update()
             else:  # otherwise move to empty space
                 self.wolf1.old_pos = self.wolf1.pos
                 self.wolf1.pos = new_pos
@@ -354,10 +357,12 @@ class Game:
             elif self.check_pos(new_pos, 1) or self.check_pos(new_pos, 3):  # check if wolf2 hit obstacle or other wolf
                 self.wolf2.status = 1  # stun wolf
                 self.wolf2.old_pos = self.wolf2.pos
+                self.update()
             elif self.check_pos(new_pos, 2):  # check if wolf2 hit rabbit hole
                 self.wolf2.status = 1  # stun wolf and remove score
                 self.wolf2.score = self.wolf2.score - 1
                 self.wolf2.old_pos = self.wolf2.pos
+                self.update()
             else:  # otherwise move to empty space
                 self.wolf2.old_pos = self.wolf2.pos
                 self.wolf2.pos = new_pos
@@ -459,32 +464,21 @@ class Game:
 
     def evaluate_file(self, generations, filename="attempt.txt", top_gens=10):
         wolves = []
-        wolf = []
-        wolves_high = -1
         rabbits = []
-        rabbit = []
-        rabbits_high = -1
         print "Evaluating file", filename
         for i in range(generations):
             print "-> In generation:", i
             self.import_from_file(filename, i)
             self.start()
-
-            if wolves_high == -1:
-                wolves_high = 0
-            elif self.score[0] > wolves[wolves_high][0]:
-                wolves_high = i
             wolves.append([self.score[0], i])
-            if rabbits_high == -1:
-                rabbits_high = 0
-            elif self.score[1] > rabbits[rabbits_high][0]:
-                rabbits_high = i
             rabbits.append([self.score[1], i])
         sorted_wolves = sorted(wolves, key=lambda w: w[0], reverse=True)
         sorted_rabbits = sorted(rabbits, key=lambda r: r[0], reverse=True)
 
         print "Top", top_gens,"wolf generations:", sorted_wolves[0:top_gens]
         print "Top", top_gens, "rabbit generations:", sorted_rabbits[0:top_gens]
+        print "All wolf generations:", wolves
+        print "All rabbit generations:", rabbits
 
         x = np.arange(0, generations)
         line1, = plt.plot(x, [wolf[0] for wolf in wolves], label="Wolves")
@@ -522,6 +516,8 @@ class Game:
                     print "Wolves scored!"
                 if score == [0, 1]:
                     print "Rabbit scored!"
+                if score == [0, -1]:
+                    print "Rabbit penalised..."
                 if score == [0, 0]:
                     print "Nobody scored..."
                 print "Round number:", self.round
@@ -533,9 +529,9 @@ class Game:
             print "Wolves won", self.score[0], "rounds!"
             print "Rabbits won", self.score[1], "rounds!"
 
-
-game = Game(size=10, rounds=20, turns=20, num_exits=3)
-game.evaluate_file(100, "attempt_1000.txt", 100)
+#
+# game = Game(size=10, rounds=20, turns=10, num_exits=3)
+# game.evaluate_file(100, "attempt_1000.txt", 100)
 # game.import_from_file("attempt_1000.txt", 80)
 # game.start(pause=True)
 

@@ -257,7 +257,7 @@ class GA:
         plt.show()
 
 
-ga = GA(generations=100, size=1000, game_rounds=10, game_exits=5)
+ga = GA(generations=100, size=100, game_rounds=10, game_exits=5)
 start = timer()
 
 ga.optimize()
