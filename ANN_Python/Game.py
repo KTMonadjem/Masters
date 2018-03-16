@@ -48,8 +48,8 @@ class Game:
         self.move_thresh = move_thresh  # animals will not move if value < 0.1
 
         # initialise board
-        self.wolf1 = Animal(layers=[20, 16, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
-        self.wolf2 = Animal(layers=[20, 16, 8], symbol=u'\u25bc')
+        self.wolf1 = Animal(layers=[20, 20, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
+        self.wolf2 = Animal(layers=[20, 20, 8], symbol=u'\u25bc')
         self.rabbit = Animal(layers=[20, 12, 4], symbol=u'\u25cf')
         self.reset()  # wipe board and position animals
 
@@ -217,6 +217,7 @@ class Game:
             inputs = self.get_inputs(self.wolf1.pos)
             self.turn = 2
             move = self.wolf1.move(inputs)
+            #print "Wolf 1 output:", move
             high = self.move_thresh
             pos = -1
             for i in range(8):  # find largest movement value
@@ -493,10 +494,11 @@ class Game:
 
     def start(self, pause=False):
         self.score = [0, 0]
+        self.rabbit.score = 0
         self.round = 0
         self.reset()
         if pause:
-            game.print_console()
+            self.print_console()
         while self.round < self.max_rounds and self.max_score not in self.score:
             self.round = self.round + 1
             self.turns = 0  # whole set of animal turns
@@ -529,9 +531,9 @@ class Game:
             print "Wolves won", self.score[0], "rounds!"
             print "Rabbits won", self.score[1], "rounds!"
 
-#
-# game = Game(size=10, rounds=20, turns=10, num_exits=3)
-# game.evaluate_file(100, "attempt_1000.txt", 100)
-# game.import_from_file("attempt_1000.txt", 80)
+
+# game = Game(size=10, rounds=1, turns=10, num_exits=3)
+# game.evaluate_file(100, "attempt.txt", 100)
+# game.import_from_file("attempt.txt", 9)
 # game.start(pause=True)
 

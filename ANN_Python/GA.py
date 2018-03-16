@@ -17,13 +17,16 @@ class Parent:
 
 
 class GA:
-    def __init__(self, generations=100, size=100, mutate=0.2, retain=0.1, game_size=10, game_rounds=10, game_turns=10, game_exits=5):
+    def __init__(self, generations=100, size=100, mutate=0.2, retain=0.1, game_size=10, game_rounds=10, game_turns=10,
+                 game_exits=5, game_move=0.1, filename="attempt"):
         self.game_size = game_size
         self.game_rounds = game_rounds
         self.game_turns = game_turns
         self.game_exits = game_exits
+        self.game_move = game_move
         self.generations = generations
         self.size = size
+        self.filename = filename
         self.fit = 0.4 - retain
         while not(self.size % 10 == 0):  # ensure that the population sizes fits with the parent pool
             self.size = self.size + 1
@@ -35,8 +38,10 @@ class GA:
         # rabbits are chosen by rabbit score
         # wolves are chosen by combined wolf score, i.e. ability to work together
 
-        self.population = [Game(size=self.game_size, rounds=self.game_rounds, turns=self.game_turns, num_exits=self.game_exits) for _ in range(self.size)]
-        self.file = open('attempt.txt', 'w')
+        self.population = [Game(size=self.game_size, rounds=self.game_rounds, turns=self.game_turns,
+                                num_exits=self.game_exits, move_thresh=self.game_move) for _ in range(self.size)]
+        name = self.filename + '.txt'
+        self.file = open(name, 'w')
         self.file.close()
 
     def fitness(self):
@@ -154,11 +159,12 @@ class GA:
         best_rabbit_pop = 0
         time_taken = 0
         for i in range(self.generations):
-            print "-> Generation:", i
+            print "\n-> Generation:", i
             sstart = timer()
             self.fitness()  # run the game for each individual and the calculate the parent population
 
-            self.file = open('attempt.txt', 'a')
+            name = self.filename + '.txt'
+            self.file = open(name, 'a')
             # add best ANN to file
             for j in range(self.rabbits[0].rabbit.ann.num_layers - 1):
                 for weight in self.rabbits[0].rabbit.ann.weights[j]:
@@ -204,9 +210,19 @@ class GA:
                 new_wolves.wolf2 = self.population[rand_wolves].wolf2
                 self.wolves.append(new_wolves)
 
+            wolf_score.append(np.sum([self.population[j].score[0] for j in range(self.size)]))
+            rabbit_score.append(np.sum([self.population[j].rabbit.score for j in range(self.size)]))
+            if best_wolf_score < wolf_score[i]:
+                best_wolf_score = wolf_score[i]
+                best_wolf_pop = i
+            if best_rabbit_score < rabbit_score[i]:
+                best_rabbit_score = rabbit_score[i]
+                best_rabbit_pop = i
+
             # create new population and populate it with parents and breed children
             for j in range(len(self.rabbits)):
-                self.population.append(Game(size=self.game_size, rounds=self.game_rounds, turns=self.game_turns, num_exits=self.game_exits))
+                self.population.append(Game(size=self.game_size, rounds=self.game_rounds, turns=self.game_turns,
+                                num_exits=self.game_exits, move_thresh=self.game_move))
                 self.population[j].rabbit = self.rabbits[j].rabbit
                 self.population[j].wolf1 = self.wolves[j].wolf1
                 self.population[j].wolf2 = self.wolves[j].wolf2
@@ -220,19 +236,11 @@ class GA:
                     self.population[len(self.rabbits) + j * 3 + k].wolf1 = children2[k]
                     self.population[len(self.rabbits) + j * 3 + k].wolf2 = children3[k]
 
-            wolf_score.append(np.sum([self.population[j].score[0] for j in range(self.size)]))
-            rabbit_score.append(np.sum([self.population[j].rabbit.score for j in range(self.size)]))
-            if best_wolf_score < wolf_score[i]:
-                best_wolf_score = wolf_score[i]
-                best_wolf_pop = i
-            if best_rabbit_score < rabbit_score[i]:
-                best_rabbit_score = rabbit_score[i]
-                best_rabbit_pop = i
-
             eend = timer()
             print "Time taken for generation:", (eend - sstart), "s"
             time_taken = time_taken + (eend - sstart)
-            print "Total time taken:", time_taken, "s\n"
+            print "Total time taken:", time_taken, "s"
+
             # print "Wolf score after run:", wolf_score[i], "    ;    Rabbit score after run:", rabbit_score[i]
             # print "Population after run"
             # for j in range(self.size):
@@ -253,11 +261,12 @@ class GA:
         plt.xlabel("Generation")
         plt.ylabel("Score")
         plt.legend(handles=[line1, line2])
-        plt.savefig('attempt.png')
+        name = self.filename + '.png'
+        plt.savefig(name)
         plt.show()
 
 
-ga = GA(generations=100, size=100, game_rounds=10, game_exits=5)
+ga = GA(generations=50, size=100, game_rounds=20, game_exits=3, game_move=0, filename="attempt")
 start = timer()
 
 ga.optimize()
