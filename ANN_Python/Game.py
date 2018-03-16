@@ -334,7 +334,7 @@ class Game:
                 self.update()
             elif self.check_pos(new_pos, 2):  # check if wolf1 hit rabbit hole
                 self.wolf1.status = 1  # stun wolf and remove score
-                self.wolf1.score = self.wolf1.score - 1
+                # self.wolf1.score = self.wolf1.score - 1
                 self.wolf1.old_pos = self.wolf1.pos
                 self.update()
             else:  # otherwise move to empty space
@@ -361,7 +361,7 @@ class Game:
                 self.update()
             elif self.check_pos(new_pos, 2):  # check if wolf2 hit rabbit hole
                 self.wolf2.status = 1  # stun wolf and remove score
-                self.wolf2.score = self.wolf2.score - 1
+                # self.wolf2.score = self.wolf2.score - 1
                 self.wolf2.old_pos = self.wolf2.pos
                 self.update()
             else:  # otherwise move to empty space
@@ -495,6 +495,8 @@ class Game:
     def start(self, pause=False):
         self.score = [0, 0]
         self.rabbit.score = 0
+        self.wolf1.score = 0
+        self.wolf2.score = 0
         self.round = 0
         self.reset()
         if pause:
@@ -533,7 +535,7 @@ class Game:
 
 
 # game = Game(size=10, rounds=1, turns=10, num_exits=3)
-# game.evaluate_file(100, "attempt.txt", 100)
-# game.import_from_file("attempt.txt", 9)
+# game.evaluate_file(100, "ANN_16_03\Attempt_0_100_50.txt", 100)
+# game.import_from_file("ANN_16_03\Attempt_0_100_50.txt", 74)
 # game.start(pause=True)
 
