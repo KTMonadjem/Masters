@@ -537,7 +537,7 @@ class Game:
 
 
 # game = Game(size=10, rounds=1, turns=10, num_exits=3)
-# game.evaluate_file(50, "ANN_17_03_0\Attempt_3_50_50.txt")
-# game.import_from_file("ANN_17_03_0\Attempt_3_50_50.txt", 37)
+# # game.evaluate_file(50, "ANN_17_03_1\Attempt_7_50_50.txt")
+# game.import_from_file("ANN_17_03_1\Attempt_7_50_50.txt", 49)
 # game.start(pause=True)
 

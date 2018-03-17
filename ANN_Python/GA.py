@@ -263,86 +263,110 @@ class GA:
             w_used = []
             for j in range(int(len(self.rabbits) / 2)):
                 # randomely select parents to breed -> not necessarily 2 in a row
-                P_r = []
-                P_r_cumulate = 0.0
-                P_w = []
-                P_w_cumulate = 0.0
-
-                score_r = 0
-                score_w = 0
-
-                # run through all rabbits to get total current score
-                for k in range(int(len(self.rabbits))):
-                    if k not in r_used:
-                        score_r = score_r + self.rabbits[k].score
-                    if k not in w_used:
-                        score_w = score_w + self.wolves[k].score
-
-                # run through all rabbits to compile a probability chart of unused scores
-                for k in range(int(len(self.rabbits))):
-                    if k not in r_used:
-                        p_r = self.rabbits[k].score/float(score_r)
-                        P_r_cumulate = P_r_cumulate + p_r
-                        P_r.append([P_r_cumulate, k])  # add cumulative probability and wolf index
-                    if k not in w_used:
-                        p_w = self.wolves[k].score/float(score_w)
-                        P_w_cumulate = P_w_cumulate + p_w
-                        P_w.append([P_w_cumulate, k])
-
-                # randomly select two parents using the cumulative probability
-                rand_r1 = rand.uniform(0, 1)
-                rand_r2 = rand.uniform(0, 1)
-                rand_w1 = rand.uniform(0, 1)
-                rand_w2 = rand.uniform(0, 1)
-                index_r1 = -1
-                index_r2 = -2
-                index_w1 = -1
-                index_w2 = -2
-
-                # retrieve the indices of the parents
-                while index_r1 == index_r2 or index_w1 == index_w2:
-                    if index_r1 == index_r2:
-                        rand_r2 = rand.uniform(0, 1)
-                        index_r2 = -2
-                    if index_w1 == index_w2:
-                        rand_w2 = rand.uniform(0, 1)
-                        index_w2 = -2
-                    # find the parents
-                    for k in range(len(P_r)):
-                        if rand_r1 < P_r[k][0] and index_r1 == -1:
-                            index_r1 = P_r[k][1]
-                        if rand_r2 < P_r[k][0] and index_r2 == -2:
-                            index_r2 = P_r[k][1]
-                        if rand_w1 < P_w[k][0] and index_w1 == -1:
-                            index_w1 = P_w[k][1]
-                        if rand_w2 < P_w[k][0] and index_w2 == -2:
-                            index_w2 = P_w[k][1]
-
-                # these indices have now been used
-                r_used.append(index_r1)
-                r_used.append(index_r2)
-                w_used.append(index_w1)
-                w_used.append(index_w2)
+                # P_r = []
+                # P_r_cumulate = 0.0
+                # P_w = []
+                # P_w_cumulate = 0.0
+                #
+                # score_r = 0
+                # score_w = 0
+                #
+                # # run through all rabbits to get total current score
+                # for k in range(int(len(self.rabbits))):
+                #     if k not in r_used:
+                #         score_r = score_r + self.rabbits[k].score
+                #     if k not in w_used:
+                #         score_w = score_w + self.wolves[k].score
+                #
+                # # run through all rabbits to compile a probability chart of unused scores
+                # for k in range(int(len(self.rabbits))):
+                #     if k not in r_used:
+                #         p_r = self.rabbits[k].score/float(score_r)
+                #         P_r_cumulate = P_r_cumulate + p_r
+                #         P_r.append([P_r_cumulate, k])  # add cumulative probability and wolf index
+                #     if k not in w_used:
+                #         p_w = self.wolves[k].score/float(score_w)
+                #         P_w_cumulate = P_w_cumulate + p_w
+                #         P_w.append([P_w_cumulate, k])
+                #
+                # # randomly select two parents using the cumulative probability
+                # rand_r1 = rand.uniform(0, 1)
+                # rand_r2 = rand.uniform(0, 1)
+                # rand_w1 = rand.uniform(0, 1)
+                # rand_w2 = rand.uniform(0, 1)
+                # index_r1 = -1
+                # index_r2 = -2
+                # index_w1 = -1
+                # index_w2 = -2
+                #
+                # # retrieve the indices of the parents
+                # while index_r1 == index_r2 or index_w1 == index_w2:
+                #     if index_r1 == index_r2:
+                #         rand_r2 = rand.uniform(0, 1)
+                #         index_r2 = -2
+                #     if index_w1 == index_w2:
+                #         rand_w2 = rand.uniform(0, 1)
+                #         index_w2 = -2
+                #     # find the parents
+                #     for k in range(len(P_r)):
+                #         if rand_r1 < P_r[k][0] and index_r1 == -1:
+                #             index_r1 = P_r[k][1]
+                #         if rand_r2 < P_r[k][0] and index_r2 == -2:
+                #             index_r2 = P_r[k][1]
+                #         if rand_w1 < P_w[k][0] and index_w1 == -1:
+                #             index_w1 = P_w[k][1]
+                #         if rand_w2 < P_w[k][0] and index_w2 == -2:
+                #             index_w2 = P_w[k][1]
+                #
+                # # these indices have now been used
+                # r_used.append(index_r1)
+                # r_used.append(index_r2)
+                # w_used.append(index_w1)
+                # w_used.append(index_w2)
+                #
+                # mutate = 0
+                # # print self.wolves[j].wolf2.score
+                # # print self.wolves[j].wolf1.score
+                # if float(1 + self.wolves[index_w1].wolf2.score)/(1 + self.wolves[index_w1].wolf1.score) < self.wolf_tol:
+                #     self.wolves[index_w1].wolf2 = self.wolves[index_w1].wolf1
+                #     mutate = mutate + 1
+                # elif float(1 + self.wolves[index_w1].wolf1.score)/(1 + self.wolves[index_w1].wolf2.score) < self.wolf_tol:
+                #     self.wolves[index_w1].wolf1 = self.wolves[index_w1].wolf2
+                #     mutate = mutate + 1
+                # if float(1 + self.wolves[index_w2].wolf2.score)/(1 + self.wolves[index_w2].wolf1.score) < self.wolf_tol:
+                #     self.wolves[index_w2].wolf2 = self.wolves[index_w2].wolf1
+                #     mutate = mutate + 2
+                # elif float(1 + self.wolves[index_w2].wolf1.score) / (1 + self.wolves[index_w2].wolf2.score) < self.wolf_tol:
+                #     self.wolves[index_w2].wolf1 = self.wolves[index_w2].wolf2
+                #     mutate = mutate + 2
+                #
+                # children1 = self.breed(self.rabbits[index_r1].rabbit, self.rabbits[index_r2].rabbit)
+                # children2 = self.breed(self.wolves[index_w1].wolf1, self.wolves[index_w2].wolf1)
+                # children3 = self.breed(self.wolves[index_w1].wolf2, self.wolves[index_w2].wolf2, mutate)
 
                 mutate = 0
                 # print self.wolves[j].wolf2.score
                 # print self.wolves[j].wolf1.score
-                if float(1 + self.wolves[index_w1].wolf2.score)/(1 + self.wolves[index_w1].wolf1.score) < self.wolf_tol:
-                    self.wolves[index_w1].wolf2 = self.wolves[index_w1].wolf1
+                if float(1 + self.wolves[j].wolf2.score) / (
+                        1 + self.wolves[j].wolf1.score) < self.wolf_tol:
+                    self.wolves[j].wolf2 = self.wolves[j].wolf1
                     mutate = mutate + 1
-                elif float(1 + self.wolves[index_w1].wolf1.score)/(1 + self.wolves[index_w1].wolf2.score) < self.wolf_tol:
-                    self.wolves[index_w1].wolf1 = self.wolves[index_w1].wolf2
+                elif float(1 + self.wolves[j].wolf1.score) / (
+                        1 + self.wolves[j].wolf2.score) < self.wolf_tol:
+                    self.wolves[j].wolf1 = self.wolves[j].wolf2
                     mutate = mutate + 1
-                if float(1 + self.wolves[index_w2].wolf2.score)/(1 + self.wolves[index_w2].wolf1.score) < self.wolf_tol:
-                    self.wolves[index_w2].wolf2 = self.wolves[index_w2].wolf1
+                if float(1 + self.wolves[j + 1].wolf2.score) / (
+                        1 + self.wolves[j + 1].wolf1.score) < self.wolf_tol:
+                    self.wolves[j + 1].wolf2 = self.wolves[j + 1].wolf1
                     mutate = mutate + 2
-                elif float(1 + self.wolves[index_w2].wolf1.score) / (1 + self.wolves[index_w2].wolf2.score) < self.wolf_tol:
-                    self.wolves[index_w2].wolf1 = self.wolves[index_w2].wolf2
+                elif float(1 + self.wolves[j + 1].wolf1.score) / (
+                        1 + self.wolves[j + 1].wolf2.score) < self.wolf_tol:
+                    self.wolves[j + 1].wolf1 = self.wolves[j + 1].wolf2
                     mutate = mutate + 2
 
-                children1 = self.breed(self.rabbits[index_r1].rabbit, self.rabbits[index_r2].rabbit)
-                children2 = self.breed(self.wolves[index_w1].wolf1, self.wolves[index_w2].wolf1)
-                children3 = self.breed(self.wolves[index_w1].wolf2, self.wolves[index_w2].wolf2, mutate)
+                children1 = self.breed(self.rabbits[j].rabbit, self.rabbits[j + 1].rabbit)
+                children2 = self.breed(self.wolves[j].wolf1, self.wolves[j + 1].wolf1)
+                children3 = self.breed(self.wolves[j].wolf2, self.wolves[j + 1].wolf2, mutate)
                 for k in range(3):
                     self.population[len(self.rabbits) + j * 3 + k].rabbit = children1[k]
                     self.population[len(self.rabbits) + j * 3 + k].wolf1 = children2[k]
@@ -379,12 +403,13 @@ class GA:
         # plt.show()
 
 
-ga = GA(generations=50, size=50, game_rounds=50, game_exits=4, game_move=0, filename="attempt")
+ga = GA(generations=100, size=100, game_rounds=50, game_exits=5, game_move=0, filename="attempt")
 start = timer()
 
-for i in range(0, 10):
+times = 10
+for i in range(0, times):
     print "<=====================> Starting ANN set number:", i, "<=====================>"
-    ga.set_filename("ANN_17_03_1\Attempt_" + str(i))
+    ga.set_filename("ANN_17_03_3\Attempt_" + str(i))
     ga.gen_pop()
     ga.optimize()
 
