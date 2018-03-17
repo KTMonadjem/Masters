@@ -32,10 +32,13 @@ class Animal:
 
 
 class Game:
-    def __init__(self, size=20, score=15, rounds=20, turns=20, num_exits=3, move_thresh=0.1):
+    def __init__(self, size=20, score=0, rounds=20, turns=20, num_exits=3, move_thresh=0.1):
         self.file = None
         self.size = size
-        self.max_score = score
+        if score == 0:
+            self.max_score = rounds
+        else:
+            self.max_score = score
         self.max_rounds = rounds
         self.max_turns = turns
         self.num_exits = num_exits
@@ -50,7 +53,7 @@ class Game:
         # initialise board
         self.wolf1 = Animal(layers=[20, 20, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
         self.wolf2 = Animal(layers=[20, 20, 8], symbol=u'\u25bc')
-        self.rabbit = Animal(layers=[20, 12, 4], symbol=u'\u25cf')
+        self.rabbit = Animal(layers=[20, 20, 4], symbol=u'\u25cf')
         self.reset()  # wipe board and position animals
 
     def import_from_file(self, filename="attempt.txt", epoch=0):
@@ -168,17 +171,16 @@ class Game:
 
                 if x < 0 or y < 0 or x > self.size - 1 or y > self.size - 1:  # outside game boundary
                     break
+                if x == 0 or y == 0 or x == self.size - 1 or y == self.size - 1:  # found game boundary
+                    end = True
 
                 if self.state[x][y] == 1:  # obstacle found
                     found_obs = True
                     inputs[4 + angle * 2] = 1.0 / length
-                    if x == 0 or y == 0 or x == self.size - 1 or y == self.size - 1:  # found game boundary
-                        end = True
                 if self.state[x][y] == 2:  # exit found
                     found_exit = True
                     inputs[4 + angle * 2 + 1] = 1.0 / length
-                    if x == 0 or y == 0 or x == self.size - 1 or y == self.size - 1:  # found game boundary
-                        end = True
+
             if not found_obs:
                 inputs[4 + angle * 2] = 0
             if not found_exit:
@@ -535,7 +537,7 @@ class Game:
 
 
 # game = Game(size=10, rounds=1, turns=10, num_exits=3)
-# game.evaluate_file(100, "ANN_16_03\Attempt_0_100_50.txt", 100)
-# game.import_from_file("ANN_16_03\Attempt_0_100_50.txt", 74)
+# game.evaluate_file(50, "ANN_17_03_0\Attempt_3_50_50.txt")
+# game.import_from_file("ANN_17_03_0\Attempt_3_50_50.txt", 37)
 # game.start(pause=True)
 
