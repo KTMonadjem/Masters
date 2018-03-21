@@ -51,23 +51,36 @@ class Game:
         self.move_thresh = move_thresh  # animals will not move if value < 0.1
 
         # initialise board
-        self.wolf1 = Animal(layers=[20, 20, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
-        self.wolf2 = Animal(layers=[20, 20, 8], symbol=u'\u25bc')
-        self.rabbit = Animal(layers=[20, 20, 4], symbol=u'\u25cf')
+        self.wolf1 = Animal(num_layers=3, layers=[20, 30, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
+        self.wolf2 = Animal(num_layers=3, layers=[20, 30, 8], symbol=u'\u25bc')
+        self.rabbit = Animal(num_layers=3, layers=[20, 24, 4], symbol=u'\u25cf')
+        # [20, 50, 8], [20, 50, 8], [20, 40, 4]
+        # latest run using [20, 30, 30, 8], [20, 30, 30, 8], [20, 20, 20, 4]
+        # previous run using [20, 40, 8], [20, 40, 8], [20, 30, 4]
+        # previous previous run using [20, 30, 8], [20, 30, 8], [20, 24, 4]
+        # previous previous previous run using [20, 16, 16, 8], [20, 16, 16, 8], [20, 12, 12, 4]
+        # previous previous previous previous run using [20, 20, 8], [20, 20, 8], [20, 16, 4]
+
         self.reset()  # wipe board and position animals
 
-    def import_from_file(self, filename="attempt.txt", epoch=0):
+    def import_from_file(self, filename="attempt.txt", epoch=0, debug=False):
         self.file = open(filename, 'r')
         # each epoch takes up 9 lines - 2 lines per ANN (3 total) for 2 layers each
-        lines = self.file.readlines()[6 * epoch: 6 * epoch + 6]
+        num_lines = self.wolf1.ann.num_layers + self.wolf2.ann.num_layers + self.rabbit.ann.num_layers - 3
+        lines = self.file.readlines()[num_lines * epoch: num_lines * epoch + num_lines]
         for i in range(len(lines)):
             lines[i] = lines[i].split()
             lines[i] = [float(weight) for weight in lines[i]]
 
+        if debug:
+            print "First", num_lines, "lines are lengths:"
+            for i in range(num_lines):
+                print len(lines[i])
+
         for i in range(self.rabbit.ann.num_layers - 1):
             self.rabbit.ann.weights[i] = lines[i]
-            self.wolf1.ann.weights[i] = lines[i + 2]
-            self.wolf2.ann.weights[i] = lines[i + 4]
+            self.wolf1.ann.weights[i] = lines[i + self.rabbit.ann.num_layers - 1]
+            self.wolf2.ann.weights[i] = lines[i + self.rabbit.ann.num_layers + self.wolf1.ann.num_layers - 2]
 
     def print_console(self):
         for y in range(self.size):
@@ -465,13 +478,13 @@ class Game:
                 if [x, y] == self.rabbit.pos:
                     self.state[x][y] = 5
 
-    def evaluate_file(self, generations, filename="attempt.txt", top_gens=10):
+    def evaluate_file(self, generations, filename="attempt.txt", top_gens=10, debug=False):
         wolves = []
         rabbits = []
         print "Evaluating file", filename
         for i in range(generations):
             print "-> In generation:", i
-            self.import_from_file(filename, i)
+            self.import_from_file(filename, i, debug)
             self.start()
             wolves.append([self.score[0], i])
             rabbits.append([self.score[1], i])
@@ -483,6 +496,7 @@ class Game:
         print "All wolf generations:", wolves
         print "All rabbit generations:", rabbits
 
+        plt.figure()
         x = np.arange(0, generations)
         line1, = plt.plot(x, [wolf[0] for wolf in wolves], label="Wolves")
         line2, = plt.plot(x, [rabbit[0] for rabbit in rabbits], label="Rabbit")
@@ -492,7 +506,7 @@ class Game:
         name = filename[0: len(filename) - 4]
         name = name + '_scoring.png'
         plt.savefig(name)
-        plt.show()
+        # plt.show()
 
     def start(self, pause=False):
         self.score = [0, 0]
@@ -536,8 +550,12 @@ class Game:
             print "Rabbits won", self.score[1], "rounds!"
 
 
-# game = Game(size=10, rounds=1, turns=10, num_exits=3)
-# # game.evaluate_file(50, "ANN_17_03_1\Attempt_7_50_50.txt")
-# game.import_from_file("ANN_17_03_1\Attempt_7_50_50.txt", 49)
+game = Game(size=10, rounds=200, turns=20, num_exits=3)
+for i in range(5):
+    name1 = "ANN_20_03_0\Attempt_"
+    name2 = "_100_50.txt"
+    name = name1 + str(i) + name2
+    game.evaluate_file(100, name, debug=False)
+# game.import_from_file("ANN_20_03_0\Attempt_4_100_50.txt", 98)
 # game.start(pause=True)
 
