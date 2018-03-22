@@ -51,9 +51,10 @@ class Game:
         self.move_thresh = move_thresh  # animals will not move if value < 0.1
 
         # initialise board
-        self.wolf1 = Animal(num_layers=3, layers=[20, 30, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
-        self.wolf2 = Animal(num_layers=3, layers=[20, 30, 8], symbol=u'\u25bc')
-        self.rabbit = Animal(num_layers=3, layers=[20, 24, 4], symbol=u'\u25cf')
+        self.wolf1 = Animal(num_layers=5, layers=[20, 20, 20, 20, 8], symbol=u'\u25b2')  # ANN initialised in animal __init__
+        self.wolf2 = Animal(num_layers=5, layers=[20, 20, 20, 20, 8], symbol=u'\u25bc')
+        self.rabbit = Animal(num_layers=5, layers=[20, 16, 16, 16, 4], symbol=u'\u25cf')
+        # [20, 20, 20, 20, 8] [20, 20, 20, 20, 8] [20, 16, 16, 16, 4]
         # [20, 50, 8], [20, 50, 8], [20, 40, 4]
         # latest run using [20, 30, 30, 8], [20, 30, 30, 8], [20, 20, 20, 4]
         # previous run using [20, 40, 8], [20, 40, 8], [20, 30, 4]
@@ -552,7 +553,7 @@ class Game:
 
 game = Game(size=10, rounds=200, turns=20, num_exits=3)
 for i in range(5):
-    name1 = "ANN_20_03_0\Attempt_"
+    name1 = "ANN_21_03_1\Attempt_"
     name2 = "_100_50.txt"
     name = name1 + str(i) + name2
     game.evaluate_file(100, name, debug=False)

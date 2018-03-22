@@ -38,12 +38,14 @@ class GA:
         # each 'individual' is composed of 3 ANNs -> i.e. a game
         # rabbits are chosen by rabbit score
         # wolves are chosen by combined wolf score, i.e. ability to work together
-        self.file = open(name, 'w')
-        contents = str(self.population[0].wolf1.ann.layers) + "\n" + str(self.population[0].wolf1.ann.layers) + "\n" + str(self.population[0].rabbit.ann.layers)
-        self.file.write(contents)
-
         self.population = [Game(size=self.game_size, rounds=self.game_rounds, turns=self.game_turns,
                                 num_exits=self.game_exits, move_thresh=self.game_move) for _ in range(self.size)]
+
+        # write ann stats to a file
+        self.file = open(self.filename + ".txt", 'w')
+        contents = str(self.population[0].wolf1.ann.layers) + "\n" + str(
+            self.population[0].wolf1.ann.layers) + "\n" + str(self.population[0].rabbit.ann.layers)
+        self.file.write(contents)
 
     def gen_pop(self):
         self.population = [Game(size=self.game_size, rounds=self.game_rounds, turns=self.game_turns,
@@ -405,13 +407,13 @@ class GA:
         # plt.show()
 
 
-ga = GA(generations=100, size=50, game_rounds=50, game_exits=4, game_move=0, filename="attempt")
+ga = GA(generations=100, size=50, game_rounds=50, game_exits=4, game_move=0, filename="ANN_21_03_1\Attempt")
 start = timer()
 
 times = 5
 for i in range(0, times):
     print "<=====================> Starting ANN set number:", i, "<=====================>"
-    ga.set_filename("ANN_21_03_0\Attempt_" + str(i))
+    ga.set_filename("ANN_21_03_1\Attempt_" + str(i))
     ga.gen_pop()
     ga.optimize()
 
